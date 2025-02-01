@@ -1,0 +1,118 @@
+import pygame
+import random
+import time
+
+# Inicializar pygame
+pygame.init()
+
+# Configuración de la pantalla
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Juego de Operaciones Rápidas")
+
+# Colores pastel
+WHITE = (255, 255, 255)
+LIGHT_BLUE = (173, 216, 230)
+LIGHT_PINK = (255, 182, 193)
+LIGHT_GREEN = (144, 238, 144)
+LIGHT_ORANGE = (255, 165, 0)
+
+# Fuentes
+font = pygame.font.Font(None, 50)
+small_font = pygame.font.Font(None, 36)
+
+# Variables de juego
+score = 0
+time_limit = 5
+running = True
+level = 1
+mistakes = 0
+max_mistakes = 5
+
+# Función para generar una operación aleatoria
+def generate_question(level):
+    operations = ['+', '-', '*', '/']
+    num1 = random.randint(1, 10 * level)
+    num2 = random.randint(1, 10 * level)
+    operation = random.choice(operations)
+    
+    if operation == '/':  # Evitar divisiones con decimales
+        num1 = num2 * random.randint(1, level * 2)
+    
+    question = f"{num1} {operation} {num2}"
+    answer = eval(question)
+    return question, answer
+
+# Función para reiniciar el juego
+def reset_game():
+    global score, level, mistakes
+    score = 0
+    level = 1
+    mistakes = 0
+
+# Generar primera pregunta
+question, correct_answer = generate_question(level)
+start_time = time.time()
+user_input = ""
+
+while running:
+    screen.fill(WHITE)
+    
+    # Tiempo restante
+    elapsed_time = time.time() - start_time
+    remaining_time = max(0, time_limit - elapsed_time)
+    
+    if remaining_time == 0:
+        question, correct_answer = generate_question(level)
+        start_time = time.time()
+        user_input = ""
+        mistakes += 1
+        if mistakes >= max_mistakes:
+            reset_game()
+    
+    # Dibujar pregunta y respuesta
+    question_text = font.render(question, True, LIGHT_BLUE)
+    screen.blit(question_text, (WIDTH // 2 - question_text.get_width() // 2, HEIGHT // 3))
+    
+    input_text = font.render(user_input, True, LIGHT_PINK)
+    screen.blit(input_text, (WIDTH // 2 - input_text.get_width() // 2, HEIGHT // 2))
+    
+    # Dibujar tiempo restante
+    time_text = small_font.render(f"Tiempo: {int(remaining_time)}s", True, LIGHT_ORANGE)
+    screen.blit(time_text, (10, 10))
+    
+    # Dibujar puntuación
+    score_text = small_font.render(f"Puntuación: {score}", True, LIGHT_GREEN)
+    screen.blit(score_text, (WIDTH - 200, 10))
+    
+    # Dibujar errores
+    mistakes_text = small_font.render(f"Errores: {mistakes}/{max_mistakes}", True, LIGHT_PINK)
+    screen.blit(mistakes_text, (WIDTH - 200, 50))
+    
+    pygame.display.flip()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                try:
+                    if float(user_input) == correct_answer:
+                        score += 1
+                        if score % 5 == 0:
+                            level += 1
+                    else:
+                        mistakes += 1
+                        if mistakes >= max_mistakes:
+                            reset_game()
+                    question, correct_answer = generate_question(level)
+                    start_time = time.time()
+                    user_input = ""
+                except ValueError:
+                    user_input = ""
+            elif event.key == pygame.K_BACKSPACE:
+                user_input = user_input[:-1]
+            else:
+                user_input += event.unicode
+
+pygame.quit()
